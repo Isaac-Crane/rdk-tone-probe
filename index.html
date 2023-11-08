@@ -11,10 +11,10 @@
     <script src="jspsych-6.3.1/plugins/jspsych-survey-text.js"></script>
     <script src="jspsych-6.3.1/plugins/jspsych-survey-multi-choice.js"></script>
     <script src="jspsych-6.3.1/plugins/jspsych-audio-button-response.js"></script>
-    <script type="text/javascript" src="lib/jspsych-pavlovia-3.0.0.js"></script>
     <link href="jspsych-6.3.1/css/jspsych.css" rel="stylesheet" type="text/css"/>
     <!--plugins for the dot trajectory task-->
     <script src="jspsych-6.3.1/plugins/dot-motion.js"></script>
+    <script src="jspsych-6.3.1/plugins/dot-motion-recordCursor.js"></script>
     <script src="jspsych-6.3.1/plugins/jspsych-fullscreen.js"></script>
     <script src="jspsych-6.3.1/plugins/jspsych-call-function.js"></script>
     <script src="jspsych-6.3.1/plugins/jspsych-external-html.js"></script>
@@ -22,7 +22,6 @@
 
     <!--task script-->
     <script src="dot-trajectory-task.js"></script>
-    <script src="completion-code.js"></script>
 
   </head>
   <body></body>
@@ -34,7 +33,7 @@
   timeline.push(dot_trajectory_task);
 
   jsPsych.init({
-      timeline: timeline
+      timeline: timeline,
   });
 
   </script>

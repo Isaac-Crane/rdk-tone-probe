@@ -112,18 +112,27 @@ timeline_dot_trajectory.push(keypressInstruc);
 
 var answerRecorder = true;
 var practiceNum = 0;
-var practiceControl = 0.25;
+var practiceControl = [0.7, 0.3];
 var failTrialDetect = false;
 var practice = {
-    type: "dot-motion",
+    type: "dot-motion-recordCursor",
     controlLevel: 500,
     trial_duration: jsPsych.timelineVariable('trial_duration'),
+    controlLevel1: 1,
+    controlLevel2: 1,  
     data: {
         test_part: 'dot_practice'
     },
 
     on_start: function(trial) {
-        trial.controlLevel = practiceControl;
+        if (Math.floor(Math.random() * 2) == 0){
+            trial.controlLevel1 = practiceControl[0];
+            trial.controlLevel2 = practiceControl[1];
+        }
+        else{
+            trial.controlLevel1 = practiceControl[1];
+            trial.controlLevel2 = practiceControl[0];
+        }
     },
     on_finish: function(data) {
         if (data.controlLevel == -1) {
@@ -132,10 +141,13 @@ var practice = {
         } else {
             answerRecorder = data.correct;
             practiceNum++;
-            if (answerRecorder == true)
-                practiceControl -= 0.025;
+            if (answerRecorder == true){
+                practiceControl[0] -= 0.025;
+                practiceControl[1] += 0.025;
+            }
             else {
-                practiceControl += 0.075;
+                practiceControl[0] += 0.075;
+                practiceControl[1] -= 0.075
             }
         }
     }
@@ -204,7 +216,7 @@ var practice_procedure = {
         if (practiceNum < 5)
             return true;
         if (practiceNum == 5 && practiceWrong > 1) {
-            practiceControl = 0.25;
+            practiceControl = [0.7, 0.3];
             practiceNum = 0;
             practiceWrong = 0;
             return true;
@@ -223,208 +235,33 @@ var start = {
 };
 timeline_dot_trajectory.push(start);
 
-/*******************************************************
- staircase stuff: 1 up/1 down, delta-/delta+ = 1/3
-the minimum control level is 0
-********************************************************/
-var ratioOfSteps = 0.3333;
-var firstSize = 0.005;
-var secondSize = 0.0025;
-var thirdSize = 0.001;
-var fourthSize = 0.0007;
-var maxcontrol = 0.025;
-var criticalReserse = [2, 6, 12, 13] //first three are points where stepsize decrease, the last one is the ending condition
-//note: change the last number to 13 before launching
-var stepsize = [firstSize, firstSize / ratioOfSteps, secondSize, secondSize / ratioOfSteps, thirdSize, thirdSize / ratioOfSteps, fourthSize, fourthSize / ratioOfSteps]; //sets of step size
-var staircaseA = {
-    controlLevel: maxcontrol,
-    trialNum: 0,
-    reverseNum: 0,
-    lastChioce: true,
-    stepsizeDown: stepsize[0],
-    stepsizeUp: stepsize[1]
-};
-var staircaseB = {
-    controlLevel: maxcontrol,
-    trialNum: 0,
-    reverseNum: 0,
-    lastChioce: true,
-    stepsizeDown: stepsize[0],
-    stepsizeUp: stepsize[1]
-};
-var trialMax = 100;
-var totalTrial = 2 * trialMax;
 
-/*******************************************************
- stimuli: the dot motion, fixation cross
-********************************************************/
-//display the dot motion
-var currentStaircase; //0 = A, 1 = B
-var catchGenerator = 0;
-var breakDetect = 0;
+var totalTrial = 100; //the actual number of times the participant will be presented with dot-stimulus is 2 times this. this is the number of times they will evaluate the difference.
+
+
 var test = {
-    type: "dot-motion",
-    controlLevel: 100,
+    type: "dot-motion-recordCursor",
+    controlLevel: 500,
+    controlLevel1: Math.random(),
+    controlLevel2: Math.random(),
     trial_duration: jsPsych.timelineVariable('trial_duration'),
     data: {
         test_part: 'dot_stimulus'
     },
 
-    on_start: function(trial) {
-        //check if this trial is a catch trial, ps. catch trial when catchGenerator == 1
-        catchGenerator = Math.floor(Math.random() * 6);
-        if (catchGenerator == 1) {
-            trial.controlLevel = 0.25;
-        } else {
-            //select a staircase
-            if (staircaseA.reverseNum == criticalReserse[3]) {
-                currentStaircase = 1;
-            } else if (staircaseB.reverseNum == criticalReserse[3]) {
-                currentStaircase = 0;
-            } else {
-                currentStaircase = Math.floor(Math.random() * 2);
-            }
-
-            //update the current control level
-            if (currentStaircase == 0) {
-                trial.controlLevel = staircaseA.controlLevel;
-            } else if (currentStaircase == 1) {
-                trial.controlLevel = staircaseB.controlLevel;
-            }
-        }
-    },
+   
+    
+    
     on_finish: function(data) {
         if (data.controlLevel == -1) {
             data.test_part = 'fail_trial';
-        } else if (catchGenerator == 1) {
-            //record test part
-            data.test_part = 'dot_catch_trial';
-        } else {
-            //record test part
-            data.test_part = 'dot_stimulus';
-            //record which staircase is used
-            data.staircase = currentStaircase;
-            //update the trial number of the staircase
-            if (data.staircase == 0) {
-                staircaseA.trialNum++;
-            } else if (data.staircase == 1) {
-                staircaseB.trialNum++;
-            }
-
-            data.reverse = false;
-            //record the number of reverse in each staircase
-            if (data.staircase == 0) {
-                //record the choice in the first trial
-                if (staircaseA.trialNum == 1) {
-                    staircaseA.lastChioce = data.correct
-                }
-                //update the number of reverse
-                else {
-                    if (data.correct !== staircaseA.lastChioce) {
-                        staircaseA.reverseNum++;
-                        data.reverse = true;
-                    }
-                    staircaseA.lastChioce = data.correct;
-                }
-            } else if (data.staircase == 1) {
-                //record the choice in the first trial
-                if (staircaseB.trialNum == 1) {
-                    staircaseB.lastChioce = data.correct
-                }
-                //update the number of reverse
-                else {
-                    if (data.correct !== staircaseB.lastChioce) {
-                        staircaseB.reverseNum++;
-                        data.reverse = true;
-                    }
-                    staircaseB.lastChioce = data.correct;
-                }
-            }
-
-            //reduce the step size
-            if (staircaseA.reverseNum >= criticalReserse[0] && data.staircase == 0) {
-                staircaseA.stepsizeDown = stepsize[2];
-                staircaseA.stepsizeUp = stepsize[3];
-            } else if (staircaseB.reverseNum >= criticalReserse[0] && data.staircase == 1) {
-                staircaseB.stepsizeDown = stepsize[2];
-                staircaseB.stepsizeUp = stepsize[3];
-            }
-            if (staircaseA.reverseNum >= criticalReserse[1] && data.staircase == 0) {
-                staircaseA.stepsizeDown = stepsize[4];
-                staircaseA.stepsizeUp = stepsize[5];
-            } else if (staircaseB.reverseNum >= criticalReserse[1] && data.staircase == 1) {
-                staircaseB.stepsizeDown = stepsize[4];
-                staircaseB.stepsizeUp = stepsize[5];
-            }
-            if (staircaseA.reverseNum >= criticalReserse[2] && data.staircase == 0) {
-                staircaseA.stepsizeDown = stepsize[6];
-                staircaseA.stepsizeUp = stepsize[7];
-            } else if (staircaseB.reverseNum >= criticalReserse[2] && data.staircase == 1) {
-                staircaseB.stepsizeDown = stepsize[6];
-                staircaseB.stepsizeUp = stepsize[7];
-            }
-
-            //update the control level in that staircase
-            if (data.staircase == 0) {
-                if (data.correct == false) {
-                    staircaseA.controlLevel += staircaseA.stepsizeUp;
-                } else if (data.correct == true) {
-                    staircaseA.controlLevel -= staircaseA.stepsizeDown;
-                    if (staircaseA.controlLevel < 0)
-                        staircaseA.controlLevel = 0;
-                }
-            } else if (data.staircase == 1) {
-                if (data.correct == false) {
-                    staircaseB.controlLevel += staircaseB.stepsizeUp;
-                } else if (data.correct == true) {
-                    staircaseB.controlLevel -= staircaseB.stepsizeDown;
-                    if (staircaseB.controlLevel < 0)
-                        staircaseB.controlLevel = 0;
-                }
-            }
-            //stop the experiment if both staircase reached 10 reverse
-            if (staircaseA.reverseNum == criticalReserse[3] && staircaseB.reverseNum == criticalReserse[3]) {
-                jsPsych.endCurrentTimeline();
-            }
+            failTrialDetect = true;
         }
-
-        //break session
-        if (breakDetect < 2 && staircaseA.reverseNum >= 6 && staircaseB.reverseNum >= 6) {
-            breakDetect++;
-        } //notes: change both numbers to 6 or 7
-        if (breakDetect == 1) {
-            document.getElementById("jspsych-content").innerHTML = `
-        <p>Good job! You are halfway through the first task.</p>
-        <p>Take a break and relax your eyes.</p>
-        <p>You will have maximum 5 minutes for this break session, but you can continue the task anytime by pressing C.</p>`;
-            jsPsych.pauseExperiment();
-            //start the keyboard listener
-            keyboardListener = jsPsych.pluginAPI.getKeyboardResponse({
-                callback_function: break_callback,
-                valid_responses: ['c'],
-                persist: false,
-                allow_held_key: false
-            });
-
-            var breakEnd = setTimeout(function() {
-                if (typeof keyboardListener !== 'undefined') {
-                    jsPsych.pluginAPI.cancelKeyboardResponse(keyboardListener);
-                }
-                document.getElementById("jspsych-content").innerHTML = '';
-                jsPsych.resumeExperiment();
-            }, 300000);
-
-            function break_callback() {
-                if (typeof keyboardListener !== 'undefined') {
-                    jsPsych.pluginAPI.cancelKeyboardResponse(keyboardListener);
-                }
-                clearTimeout(breakEnd);
-                document.getElementById("jspsych-content").innerHTML = '';
-                jsPsych.resumeExperiment();
-            }
+        else{
+            
         }
-    },
-};
+    }
+}
 
 //fixation cross
 var fixation = {
@@ -434,8 +271,35 @@ var fixation = {
     choices: jsPsych.NO_KEYS,
     trial_duration: 500,
     data: {
+        
         test_part: 'dot_fixation'
     },
+};
+
+//participants evaluate the difference between their control of the previous two tests
+var differencePerception = {
+    type: "html-keyboard-response",
+    stimulus: `
+    <p> Of the previous two tests, over which controlled dot did you have more control? </p><p>Press 1 for the first. Press 2 for the second</p>
+        `,
+    choices: ['1', '2'],
+    data: {
+        correct_response: function(){
+            var priorData = jsPsych.data.get().filter({test_part: 'dot_stimulus'}).values()
+            firstDifference = Math.abs(priorData[priorData.length-2].controlLevel1-priorData[priorData.length-2].controlLevel2)
+            secondDifference = Math.abs(priorData[priorData.length-1].controlLevel1-priorData[priorData.length-1].controlLevel2)
+            if (firstDifference>secondDifference){
+                return '1'
+            }
+            else{
+                return '2'
+            }
+        },
+        test_part: 'perceived_difference'
+    },
+    on_finish: function(data){
+        data.correct = jsPsych.pluginAPI.compareKeys(data.response, data.correct_response);
+    }
 };
 
 /*******************************************************
@@ -443,7 +307,7 @@ var fixation = {
 ********************************************************/
 //control the timeline
 var test_procedure = {
-    timeline: [fixation, test],
+    timeline: [fixation, test, fixation, test, differencePerception],
     timeline_variables: [{
         trial_duration: 2500
     }],

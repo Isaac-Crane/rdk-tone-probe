@@ -10,13 +10,18 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
     name: 'dot-motion',
     description: 'two randomly moving dots. One can controlled by the mouse movement.',
     parameters: {
-      controlLevel: {
+      controlLevel1: {
         type: jsPsych.plugins.parameterType.FLOAT,
         pretty_name: 'Control Level',
         default: undefined,
-        description: 'the level of control of mouse over the dot movement'
+        description: 'the level of control of mouse over the first dot movement'
       },
-
+      controlLevel2: {
+        type: jsPsych.plugins.parameterType.FLOAT,
+        pretty_name: 'Control Level',
+        default: undefined,
+        description: 'the level of control of mouse over the second dot movement'
+      },
       trial_duration: {
         type: jsPsych.plugins.parameterType.INT,
         pretty_name: 'Trial duration',
@@ -239,11 +244,13 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
 
     //let the mouse movement influence the trajectory
     var latestDot = {x: 0, y: 0};
-    function mouseControl(dotn){
+    function mouseControl(dotn, controlLevel){
       //calculate the mouse trajectory and move the new dot
       if (mouse[2] !== mouse[0] || mouse[3] !== mouse[1]){
-        newDot.x += trial.controlLevel * (mouse[2] - mouse[0]);
-        newDot.y += trial.controlLevel * (mouse[3] - mouse[1]);
+        
+        newDot.x += controlLevel * (mouse[2] - mouse[0]);
+        newDot.y += controlLevel * (mouse[3] - mouse[1]);
+        
         //move the dot
         latestDot.x = oldDot.x + (distance * (newDot.x - oldDot.x) / Math.pow( Math.pow(oldDot.x - newDot.x ,2) + Math.pow(oldDot.y - newDot.y ,2),1/2));
         latestDot.y = oldDot.y + (distance * (newDot.y - oldDot.y) / Math.pow( Math.pow(oldDot.x - newDot.x ,2) + Math.pow(oldDot.y - newDot.y ,2),1/2));
@@ -252,7 +259,7 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
           dotn.x = oldDot.x; dotn.y = oldDot.y;
        }
         else{
-          dotn.x = latestDot.x; dotn.y = latestDot.y;
+          dotn.x = latestDot.x; dotn.y = latestDot.y; 
        }
       }
     }
@@ -260,14 +267,20 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
     var oldDot = {x: 0, y: 0};
     function updateDot(){
       //record the position of the old dot
-      newAngle(dot1);
-      if (controlPower == 0){
-        mouseControl(dot1);
+      firstx = dot1.x
+      secondx = dot1.x
+      if (controlled_greater == 0){
+        newAngle(dot1)
+        mouseControl(dot1, trial.controlLevel1);
+        newAngle(dot2)
+        mouseControl(dot2, trial.controlLevel2)
       }
 
-      newAngle(dot2);
-      if (controlPower == 1){
-        mouseControl(dot2);
+      if (controlled_greater == 1){
+        newAngle(dot1)
+        mouseControl(dot1, trial.controlLevel1, 1, controlled_greater);
+        newAngle(dot2)
+        mouseControl(dot2, trial.controlLevel2, 2, controlled_greater)
       }
     }
 
@@ -279,16 +292,22 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
     var eventListenerStatus = false;
     function oldMouseFunc(){mouse[0] = mousePos.x; mouse[1] = mousePos.y;}
     function newMouseFunc(){mouse[2] = mousePos.x; mouse[3] = mousePos.y;}
-    var controlPower;
+    var controlled_greater;
     function mouseRecorder(e){
       mousePos.x = e.clientX; mousePos.y = e.clientY;
       eventListenerStatus = true;
     }
+    var response = {AorB: null, mouseArrayX: [], mouseArrayY: []};
     function animateDotMotion(){
       var frameRequestID = window.requestAnimationFrame(animate);
       //randomly select the dot that is controlled by the mouse
-      controlPower = Math.floor(Math.random() * 2);
-
+      if (trial.controlLevel1 > trial.controlLevel2){
+        controlled_greater = 0
+      }
+      else{
+        controlled_greater = 1
+      }
+      
       function animate(){
         if(stopDotMotion){
           window.cancelAnimationFrame(frameRequestID);
@@ -323,7 +342,7 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
     }
 
     /***********************************************
-                  End tiral questions
+                  End trial questions
     *************************************************/
     function endTrialQuestions(){
       //display blank screen for 0.5 seconds
@@ -351,7 +370,6 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
       var stopBlankScreen = false;
       jsPsych.pluginAPI.setTimeout(function(){stopBlankScreen = true;}, 500) //display the blank screen for 500ms
 
-      var response = {AorB: null, confidenceLevel: null, mouseArrayX: [], mouseArrayY: []};
       var keyboardListener;
       var timer1 = setTimeout(function(){endFailTrial();}, 2000);
       function firstQuestion(){
@@ -372,23 +390,16 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
         clearTimeout(timer1);
         //collect the data from the first question
         if (response.AorB == null){
-          response.AorB = info.key;
+          var key = info.key.toLowerCase();
+          if (key == 'q') response.AorB = 'A';
+          if (key == 'r') response.AorB = 'B';
         }
         //kill the keyboardListener
         if (typeof keyboardListener !== 'undefined'){
           jsPsych.pluginAPI.cancelKeyboardResponse(keyboardListener);
         }
 
-        //display the second question
-        display_element.innerHTML = "<p> How confident are you over your judgment? </p>" +
-                                    "<p> 1 2 3 4</p>";
-        //start the keyboard listener
-        keyboardListener = jsPsych.pluginAPI.getKeyboardResponse({
-          callback_function: end_trial,
-          valid_responses: ['1', '2', '3', '4'],
-          persist: false,
-          allow_held_key: false
-        });
+        end_trial()
       }
 
       function endFailTrial(){
@@ -404,7 +415,7 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
         //display the message
         display_element.innerHTML = "<p>No answer in 2 seconds. Trial aborted.</p><p>The next trial will automatically start in 5 seconds</p>"
         //end the trial
-        var trial_data = {"controlLevel": -1, "correct": false, "confidenceLevel": -1, "key_press": -1};
+        var trial_data = {"controlLevel1": trial.controlLevel1, "controlLevel2": trial.controlLevel2, "correct": false, "key_press": -1};
         setTimeout(function(){display_element.innerHTML = ""; jsPsych.finishTrial(trial_data);}, 5000);
       }
 
@@ -414,9 +425,7 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
         //clean the screen
         display_element.innerHTML = "";
         //collect the data from the second question
-        if (response.confidenceLevel == null){
-          response.confidenceLevel = info.key;
-        }
+        
         //kill the keyboardListener
         if (typeof keyboardListener !== 'undefined'){
           jsPsych.pluginAPI.cancelKeyboardResponse(keyboardListener);
@@ -424,23 +433,14 @@ jsPsych.plugins["dot-motion-recordCursor"] = (function(){
 
         //check the answer
         var answerChecker = false;
-        if (controlPower == 0 && response.AorB == jsPsych.pluginAPI.convertKeyCharacterToKeyCode('q'))
+        if (controlled_greater == 0 && response.AorB == "A")
           answerChecker = true;
-        if (controlPower == 1 && response.AorB == jsPsych.pluginAPI.convertKeyCharacterToKeyCode('r'))
+        if (controlled_greater == 1 && response.AorB == "B")
           answerChecker = true;
-
-        //convert the confidence level
-        if (response.confidenceLevel == 52)
-          response.confidenceLevel = 4;
-        else if (response.confidenceLevel == 51)
-          response.confidenceLevel = 3;
-        else if (response.confidenceLevel == 50)
-          response.confidenceLevel = 2;
-        else
-          response.confidenceLevel = 1;
 
         //collect data and end the trial
-        var trial_data = {"controlLevel": trial.controlLevel, "correct": answerChecker, "confidenceLevel": response.confidenceLevel, "key_press": response.AorB, "mouseArrayX": JSON.stringify(response.mouseArrayX), "mouseArrayY": JSON.stringify(response.mouseArrayY)};
+        console.log(response.mouseArrayX)
+        var trial_data = {"controlLevel1": trial.controlLevel1, "controlLevel2": trial.controlLevel2, "correct": answerChecker, "key_press": response.AorB, "mouseArrayX": JSON.stringify(response.mouseArrayX), "mouseArrayY": JSON.stringify(response.mouseArrayY)};
         jsPsych.finishTrial(trial_data);
       }
     }
