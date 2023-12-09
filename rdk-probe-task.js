@@ -6,12 +6,14 @@ var initialFixation = {
     response_ends_trial: true
 }
 
-duration = 1000
+duration = 5000
 var test = {
     type: "rdk", 
     coherent_direction: 0,
-    choices: ['leftarrow', 'rightarrow', ' '],
+    choices: ['ArrowLeft', 'ArrowRight', ' '],
     correct_choice: function(){
+        console.log(jsPsych.timelineVariable('direction'),)
+        console.log(jsPsych.timelineVariable('direction') == 0)
         if (jsPsych.timelineVariable('direction') == 0){
             return 'ArrowRight'
         }
@@ -23,7 +25,6 @@ var test = {
     trial_duration: duration,
     time_to_sound: function(){
         val =  Math.floor(0.1*duration) + Math.floor(Math.random()*duration*0.8) /// sound must be at least 1/10th of the duration in and no more than 9/10ths
-        console.log(val)
         return val    
     },
     play_sound: function(){//if unspecified no sound will play
@@ -36,7 +37,22 @@ var test = {
         }
     },
     coherent_direction: jsPsych.timelineVariable('direction'),
-    data: {task: 'rdkProbe'}
+    data: {task: 'rdkProbe'},
+    on_finish: function(data){
+        if (data.response == 'arrowleft' || data.reponse == 'arrowright'){
+            data.answered = true
+        }
+        if (data.response == ' '){
+            data.answered = false
+        }
+        if (((data.time_to_sound < data.rt)||data.rt==-1) && data.play_sound){
+            data.playedTone = true
+        }
+        else{
+            data.playTone = false
+        }
+        console.log(data)
+    }
 };
 
 var followUp = {
@@ -44,26 +60,31 @@ var followUp = {
     stimulus: function(){
         var priorData = jsPsych.data.get().filter({task: 'rdkProbe'}).values()
 		lastTrial = priorData[priorData.length-1] 
-        console.log(lastTrial)
-        if (lastTrial.response = ' '){
+        if (lastTrial.response == ' '){
             return "<p>What would you have answered if you hadn't heard the tone?<p>"
         }
         else{
             return '<div style="font-size:60px;">+</div>'
         }
     },
-    choices: ['l', 'r'],
+    choices: ['ArrowLeft', 'ArrowRight'],
     trial_duration: function(){
         var priorData = jsPsych.data.get().filter({task: 'rdkProbe'}).values()
-		lastTrial = priorData[priorData.length-1] 
-        if (lastTrial.response = ' '){ //we only want to ask this question if they answered space
-            return 2000 
+		lastTrial = priorData[priorData.length-1]
+        if (lastTrial.response == ' '){ //we only want to ask this question if they answered space
+            return 10000 
         }
         else{
             return 0
         }
     },
-    response_ends_trial: true
+    response_ends_trial: true,
+    on_finish: function(data){
+        var priorData = jsPsych.data.get().filter({task: 'rdkProbe'}).values()
+		lastTrial = priorData[priorData.length-1]
+        data.correct_choice = lastTrial.correct_choice
+        data.correct = jsPsych.pluginAPI.compareKeys(data.response, 'hello')
+    }
 }
 
 var fixation = {
@@ -75,17 +96,20 @@ var fixation = {
 
 
 totalTrials = 100
+
+directionRandomized = []
+for (i = 0; i<totalTrials; i++){
+    if (Math.random() > 0.5){
+        directionRandomized.push(0)
+    }
+    else{
+        directionRandomized.push(180)
+    }
+}
 var test_procedure = {
     timeline: [fixation, test, followUp],
     timeline_variables: [{
-        direction: function(){
-            if (Math.random() > 0.5){
-                return 0
-            }
-            else{
-                return 180
-            }
-        }
+        direction: directionRandomized
     }],
     repetitions: totalTrials
 };
