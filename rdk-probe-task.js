@@ -12,8 +12,6 @@ var test = {
     coherent_direction: 0,
     choices: ['ArrowLeft', 'ArrowRight', ' '],
     correct_choice: function(){
-        console.log(jsPsych.timelineVariable('direction'),)
-        console.log(jsPsych.timelineVariable('direction') == 0)
         if (jsPsych.timelineVariable('direction') == 0){
             return 'ArrowRight'
         }
@@ -51,7 +49,7 @@ var test = {
         else{
             data.playTone = false
         }
-        console.log(data)
+        console.log(data.correct)
     }
 };
 
@@ -83,7 +81,7 @@ var followUp = {
         var priorData = jsPsych.data.get().filter({task: 'rdkProbe'}).values()
 		lastTrial = priorData[priorData.length-1]
         data.correct_choice = lastTrial.correct_choice
-        data.correct = jsPsych.pluginAPI.compareKeys(data.response, 'hello')
+        data.correct = jsPsych.pluginAPI.compareKeys(data.response, lastTrial.correct_choice)
     }
 }
 
@@ -95,24 +93,23 @@ var fixation = {
   };
 
 
-totalTrials = 100
-
+totalTrials = 5
+test_info = []
 directionRandomized = []
 for (i = 0; i<totalTrials; i++){
     if (Math.random() > 0.5){
-        directionRandomized.push(0)
+        test_info.push({direction: 0})
     }
     else{
-        directionRandomized.push(180)
+        test_info.push({direction: 180})
     }
 }
+
 var test_procedure = {
     timeline: [fixation, test, followUp],
-    timeline_variables: [{
-        direction: directionRandomized
-    }],
-    repetitions: totalTrials
+    timeline_variables: test_info,
 };
+
 
 timeline_rdk_probe = [initialFixation]
 timeline_rdk_probe.push(test_procedure);
