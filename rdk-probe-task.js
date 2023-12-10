@@ -71,7 +71,7 @@ var fixation = {
     stimulus: '<div style="font-size:60px;">+</div>',
     choices: "NO_KEYS",
     trial_duration: 500,
-  };
+};
 
 
 totalTrials = 100
