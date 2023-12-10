@@ -9,7 +9,6 @@ var initialFixation = {
 duration = 5000
 var test = {
     type: "rdk", 
-    coherent_direction: 0,
     choices: ['ArrowLeft', 'ArrowRight', ' '],
     correct_choice: function(){
         if (jsPsych.timelineVariable('direction') == 0){
@@ -25,7 +24,7 @@ var test = {
         val =  Math.floor(0.1*duration) + Math.floor(Math.random()*duration*0.8) /// sound must be at least 1/10th of the duration in and no more than 9/10ths
         return val    
     },
-    play_sound: function(){//if unspecified no sound will play
+    play_sound: function(){//if unspecified no sound will play. not the same as whether a sound was actually played. Just tells it to play the sound if time_to_sound milliseconds pass
         val = Math.random()
         if (val > 0.5){
             return true
@@ -38,10 +37,10 @@ var test = {
     data: {task: 'rdkProbe'},
     on_finish: function(data){
         if (data.response == 'arrowleft' || data.reponse == 'arrowright'){
-            data.answered = true
+            data.stoppedByProbe = false
         }
         if (data.response == ' '){
-            data.answered = false
+            data.answered = true
         }
         if (((data.time_to_sound < data.rt)||data.rt==-1) && data.play_sound){
             data.playedTone = true
@@ -49,7 +48,6 @@ var test = {
         else{
             data.playTone = false
         }
-        console.log(data.correct)
     }
 };
 
@@ -77,6 +75,7 @@ var followUp = {
         }
     },
     response_ends_trial: true,
+    data: {task: 'followUp'},
     on_finish: function(data){
         var priorData = jsPsych.data.get().filter({task: 'rdkProbe'}).values()
 		lastTrial = priorData[priorData.length-1]
