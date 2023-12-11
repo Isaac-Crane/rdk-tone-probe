@@ -218,6 +218,12 @@ jsPsych.plugins["rdk"] = (function() {
 		      default: false,
 		      description: "The presence of a border around the aperture"
 		    },
+			display_photodiode: {
+				type: jsPsych.plugins.parameterType.BOOL,
+				pretty_name: "Display Photodiode",
+				default: false,
+				description: "The presence of black square to synchronize with an EEG recording"
+			},
 		    border_thickness: {
 		      type: jsPsych.plugins.parameterType.INT,
 		      pretty_name: "Border width",
@@ -279,6 +285,7 @@ jsPsych.plugins["rdk"] = (function() {
 		trial.fixation_cross_color = assignParameterValue(trial.fixation_cross_color, "black");
 		trial.fixation_cross_thickness = assignParameterValue(trial.fixation_cross_thickness, 1);
 		trial.border = assignParameterValue(trial.border, false);
+		trial.display_photodiode = assignParameterValue(trial.display_photodiode, false);
 		trial.border_thickness = assignParameterValue(trial.border_thickness, 1);
 		trial.border_color = assignParameterValue(trial.border_color, "black");
 		
@@ -1377,6 +1384,8 @@ jsPsych.plugins["rdk"] = (function() {
 						frameRate.push(currentTimeStamp - previousTimestamp); //Push the interval into the frameRate array
 						previousTimestamp = currentTimeStamp; //Reset the timestamp
 					}
+					ctx.fillStyle = "black";
+					ctx.fillRect(0, canvasHeight-50, 50, canvasHeight);
 				}
 			}
 		}

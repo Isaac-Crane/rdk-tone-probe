@@ -10,6 +10,7 @@ duration = 5000
 var test = {
     type: "rdk", 
     choices: ['ArrowLeft', 'ArrowRight', ' '],
+    display_photodiode: true,
     correct_choice: function(){
         if (jsPsych.timelineVariable('direction') == 0){
             return 'ArrowRight'
@@ -89,6 +90,7 @@ var fixation = {
     stimulus: '<div style="font-size:60px;">+</div>',
     choices: "NO_KEYS",
     trial_duration: 500,
+    data: {task: 'fixation'}
 };
 
 
