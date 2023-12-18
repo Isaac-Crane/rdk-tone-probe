@@ -165,13 +165,38 @@ var between = {
     data: {task: 'fixation'}
 }
 
+
+
+var loop_node_test = {
+    timeline: [test],
+    loop_function: function(data){
+        if(jsPsych.pluginAPI.compareKeys(data.values()[data.values().length-1].rt, -1)){
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+var loop_node_practice = {
+    timeline: [practice],
+    loop_function: function(data){
+        if(jsPsych.pluginAPI.compareKeys(data.values()[data.values().length-1].rt, -1)){
+            alert('You must respond to each trial. The previous trial timed out. It will be repeated.')
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
 var practice_procedure = {
-    timeline: [practice, fixation],
+    timeline: [loop_node_practice, fixation],
     timeline_variables: practice_info,
 }
 
 var test_procedure = {
-    timeline: [fixation, test, followUp],
+    timeline: [fixation, loop_node_test, followUp],
     timeline_variables: test_info,
 };
 
