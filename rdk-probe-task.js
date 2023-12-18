@@ -1,12 +1,26 @@
-var initialFixation = {
-    type: "html-keyboard-response",
-    stimulus: '',
-    trial_duration: 10000,
-    choices: [' '],
-    response_ends_trial: true
+duration = 20000
+
+var practice = {
+    type: "rdk", 
+    choices: ['ArrowLeft', 'ArrowRight'],
+    display_photodiode: true,
+    correct_choice: function(){
+        if (jsPsych.timelineVariable('direction') == 0){
+            return 'ArrowRight'
+        }
+        else{
+            return 'ArrowLeft'
+        }
+    },
+    coherent_direction: jsPsych.timelineVariable('direction'),
+    coherence: jsPsych.timelineVariable('coherence'),
+    trial_duration: duration,
+    data: {task: 'rdkPractice'},
+    on_finish: function(data){
+        console.log(data.correct)
+    }
 }
 
-duration = 5000
 var test = {
     type: "rdk", 
     choices: ['ArrowLeft', 'ArrowRight', ' '],
@@ -22,19 +36,25 @@ var test = {
     ///audio: string,
     trial_duration: duration,
     time_to_sound: function(){
-        val =  Math.floor(0.1*duration) + Math.floor(Math.random()*duration*0.8) /// sound must be at least 1/10th of the duration in and no more than 9/10ths
-        return val    
-    },
-    play_sound: function(){//if unspecified no sound will play. not the same as whether a sound was actually played. Just tells it to play the sound if time_to_sound milliseconds pass
-        val = Math.random()
-        if (val > 0.5){
-            return true
+        var priorData = jsPsych.data.get().filter({task: 'rdkPractice'}).values()
+        priorData = priorData.concat(jsPsych.data.get().filter({task: 'rdkProbe'}).values())
+        sum = 0
+        previousTrials = 0
+        for (i = 0; i < priorData.length; i++){
+            if (priorData[i].coherence == jsPsych.timelineVariable('coherence')){
+                if (priorData[i].rt != -1 && priorData[i].response != ' '){
+                    sum = sum + priorData[i].rt
+                    previousTrials = previousTrials + 1
+                }
+            }
         }
-        else{
-            return false
-        }
+        mean = sum/previousTrials
+        uniform =  Math.random()*(mean*2)
+        return uniform
     },
+    play_sound: true,
     coherent_direction: jsPsych.timelineVariable('direction'),
+    coherence: jsPsych.timelineVariable('coherence'),
     data: {task: 'rdkProbe'},
     on_finish: function(data){
         if (data.response == 'arrowleft' || data.reponse == 'arrowright'){
@@ -82,6 +102,7 @@ var followUp = {
 		lastTrial = priorData[priorData.length-1]
         data.correct_choice = lastTrial.correct_choice
         data.correct = jsPsych.pluginAPI.compareKeys(data.response, lastTrial.correct_choice)
+        console.log(data.correct)
     }
 }
 
@@ -89,15 +110,34 @@ var fixation = {
     type: 'html-keyboard-response',
     stimulus: '<div style="font-size:60px;">+</div>',
     choices: "NO_KEYS",
-    trial_duration: 500,
+    trial_duration: 250,
     data: {task: 'fixation'}
 };
 
 
-totalTrials = 5
+practiceTrials = 30//total practice trials
+practice_info = []
+for (i = 0; i<practiceTrials; i++){
+    if (Math.random() > 0.5){
+        practice_info.push({direction: 0})
+    }
+    else{
+        practice_info.push({direction: 180})
+    }
+}
+for (j = 0; j<10; j++){
+    practice_info[j].coherence = 0.45
+}
+for (j = 10; j<20; j++){
+    practice_info[j].coherence = 0.3
+}
+for (j = 20; j<30; j++){
+    practice_info[j].coherence = 0.15
+}
+
+testTrials = 100
 test_info = []
-directionRandomized = []
-for (i = 0; i<totalTrials; i++){
+for (i = 0; i<testTrials; i++){
     if (Math.random() > 0.5){
         test_info.push({direction: 0})
     }
@@ -105,15 +145,41 @@ for (i = 0; i<totalTrials; i++){
         test_info.push({direction: 180})
     }
 }
+for (j = 0; j<testTrials; j++){
+    value = Math.floor(Math.random()*3)
+    if (value == 0){
+        test_info[j].coherence = 0.15
+    }
+    else if (value == 1){
+        test_info[j].coherence = 0.3
+    }
+    else{
+        test_info[j].coherence = 0.45
+    }
+}
+var between = {
+    type: 'html-keyboard-response',
+    stimulus: '<div style="font-size:60px;">Now with probes</div>',
+    choices: "NO_KEYS",
+    trial_duration: 1000,
+    data: {task: 'fixation'}
+}
+
+var practice_procedure = {
+    timeline: [practice, fixation],
+    timeline_variables: practice_info,
+}
 
 var test_procedure = {
     timeline: [fixation, test, followUp],
     timeline_variables: test_info,
 };
 
-
-timeline_rdk_probe = [initialFixation]
+timeline_rdk_probe = []
+timeline_rdk_probe.push(practice_procedure);
+timeline_rdk_probe.push(between)
 timeline_rdk_probe.push(test_procedure);
+
 
 
 var rdk_probe_task = {
