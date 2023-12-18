@@ -74,27 +74,9 @@ var test = {
 
 var followUp = {
     type: "html-keyboard-response",
-    stimulus: function(){
-        var priorData = jsPsych.data.get().filter({task: 'rdkProbe'}).values()
-		lastTrial = priorData[priorData.length-1] 
-        if (lastTrial.response == ' '){
-            return "<p>What would you have answered if you hadn't heard the tone?<p>"
-        }
-        else{
-            return '<div style="font-size:60px;">+</div>'
-        }
-    },
+    stimulus: "<p>What would you have answered if you hadn't heard the tone?<p>",
     choices: ['ArrowLeft', 'ArrowRight'],
-    trial_duration: function(){
-        var priorData = jsPsych.data.get().filter({task: 'rdkProbe'}).values()
-		lastTrial = priorData[priorData.length-1]
-        if (lastTrial.response == ' '){ //we only want to ask this question if they answered space
-            return 10000 
-        }
-        else{
-            return 0
-        }
-    },
+    trial_duration: 10000,
     response_ends_trial: true,
     data: {task: 'followUp'},
     on_finish: function(data){
@@ -190,13 +172,24 @@ var loop_node_practice = {
     }
 }
 
+var if_node = {
+    timeline: [followUp],
+    conditional_function: function(){
+        if(jsPsych.pluginAPI.compareKeys(data.values()[data.values().length-1].response, ' ')){
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
 var practice_procedure = {
-    timeline: [loop_node_practice, fixation],
+    timeline: [fixation, loop_node_practice],
     timeline_variables: practice_info,
 }
 
 var test_procedure = {
-    timeline: [fixation, loop_node_test, followUp],
+    timeline: [fixation, loop_node_test, if_node],
     timeline_variables: test_info,
 };
 
