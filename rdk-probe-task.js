@@ -175,6 +175,7 @@ var loop_node_practice = {
 var if_node = {
     timeline: [followUp],
     conditional_function: function(){
+        data = jsPsych.data.get()
         if(jsPsych.pluginAPI.compareKeys(data.values()[data.values().length-1].response, ' ')){
             return true;
         } else {
