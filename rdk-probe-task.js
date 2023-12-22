@@ -184,8 +184,24 @@ var if_node = {
     }
 }
 
+var feedback = {
+    type: "html-keyboard-response",
+    stimulus: function(){
+        var priorData = jsPsych.data.get().filter({task: 'rdkPractice'}).values()
+        lastTrial = priorData[priorData.length-1]
+        if (lastTrial.correct){
+            return "<p>Correct!<p>"
+        }
+        else{
+            return "<p>Incorrect<p>"
+        }
+    },
+    trial_duration: 1000,
+    choices: []
+}
+
 var practice_procedure = {
-    timeline: [fixation, loop_node_practice],
+    timeline: [fixation, loop_node_practice, feedback],
     timeline_variables: practice_info,
 }
 
